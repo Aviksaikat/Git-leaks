@@ -89,6 +89,24 @@ fn format_json(findings: &[Finding]) -> String {
     }
 }
 
+/// Print only the secret values, one per line (deduplicated).
+pub fn print_list(findings: &[Finding]) {
+    print!("{}", format_list(findings));
+}
+
+/// Format only the secret values, one per line (deduplicated).
+pub fn format_list(findings: &[Finding]) -> String {
+    let mut seen = std::collections::HashSet::new();
+    let mut out = String::new();
+    for finding in findings {
+        if seen.insert(&finding.matched_text) {
+            out.push_str(&finding.matched_text);
+            out.push('\n');
+        }
+    }
+    out
+}
+
 /// Format a secret based on reveal level.
 fn format_secret(secret: &str, level: RevealLevel) -> String {
     match level {

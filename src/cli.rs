@@ -70,6 +70,11 @@ pub struct Args {
     /// Usage: git-leaks --decrypt <file>
     #[arg(long)]
     pub decrypt: Option<PathBuf>,
+
+    /// Only list the leaked secret values, one per line (no metadata).
+    /// Works with both scan output and --decrypt.
+    #[arg(short, long)]
+    pub list: bool,
 }
 
 #[derive(ValueEnum, Clone, Debug)]

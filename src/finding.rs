@@ -1,8 +1,9 @@
 use std::collections::HashMap;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use zeroize::{Zeroize, ZeroizeOnDrop};
 
-#[derive(Debug, Clone, Serialize, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Hash, Zeroize, ZeroizeOnDrop)]
 pub struct Finding {
     pub commit_hash: String,
     pub commit_message: String,
@@ -15,6 +16,7 @@ pub struct Finding {
 }
 
 /// Deduplicate findings: keep the earliest commit for each (matched_text, file_path) pair.
+/// Old entries are zeroized on drop to clear secrets from memory.
 pub fn deduplicate(findings: Vec<Finding>) -> Vec<Finding> {
     let mut seen: HashMap<(String, String), Finding> = HashMap::new();
 
