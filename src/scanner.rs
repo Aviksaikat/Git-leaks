@@ -22,6 +22,7 @@ pub fn scan(args: &Args) -> Result<Vec<Finding>> {
 
     let ext_filter = args.extension_list();
     let max_size = args.max_file_size;
+    let pk_only = args.private_keys_only;
 
     // Parse --since into a unix timestamp
     let since_ts: Option<i64> = args.since.as_ref().and_then(|s| parse_since(s));
@@ -281,7 +282,7 @@ pub fn scan(args: &Args) -> Result<Vec<Finding>> {
             }
         };
 
-        match scan_commit_tree(&thread_repo, oid, commit_info, &ext_filter, max_size) {
+        match scan_commit_tree(&thread_repo, oid, commit_info, &ext_filter, max_size, pk_only) {
             Ok(commit_findings) => {
                 if !commit_findings.is_empty() {
                     findings.lock().unwrap().extend(commit_findings);
@@ -306,8 +307,13 @@ fn scan_commit_tree(
     commit_info: &CommitInfo,
     ext_filter: &Option<Vec<String>>,
     max_size: u64,
+    private_keys_only: bool,
 ) -> Result<Vec<Finding>> {
-    let patterns = PatternSet::default_patterns();
+    let patterns = if private_keys_only {
+        PatternSet::private_keys_only()
+    } else {
+        PatternSet::default_patterns()
+    };
 
     let commit = repo.find_commit(*oid)?;
     let tree = commit.tree()?;

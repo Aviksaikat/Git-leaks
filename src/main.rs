@@ -17,7 +17,7 @@ fn main() -> anyhow::Result<()> {
     let findings = scanner::scan(&args)?;
     let findings = deduplicate(findings);
 
-    print_findings(&findings, &args.format);
+    print_findings(&findings, &args.format, args.reveal);
 
     if !findings.is_empty() {
         std::process::exit(1);

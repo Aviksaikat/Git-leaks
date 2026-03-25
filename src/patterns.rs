@@ -70,6 +70,17 @@ impl PatternSet {
         Self { patterns }
     }
 
+    /// Return only private key patterns.
+    pub fn private_keys_only() -> Self {
+        let all = Self::default_patterns();
+        let patterns = all
+            .patterns
+            .into_iter()
+            .filter(|p| is_private_key_pattern(p.name))
+            .collect();
+        Self { patterns }
+    }
+
     /// Run all patterns against text, returning (pattern_name, matched_text) pairs.
     pub fn scan_text<'a>(&'a self, text: &str) -> Vec<(&'a str, String)> {
         let mut matches = Vec::new();
@@ -85,6 +96,13 @@ impl PatternSet {
         }
         matches
     }
+}
+
+fn is_private_key_pattern(name: &str) -> bool {
+    matches!(
+        name,
+        "evm_private_key" | "hex_private_key_raw" | "pem_private_key"
+    )
 }
 
 #[cfg(test)]

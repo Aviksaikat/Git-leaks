@@ -50,6 +50,16 @@ pub struct Args {
     /// Requires GITHUB_TOKEN env var for private repos (optional for public).
     #[arg(long)]
     pub discover_orphans: bool,
+
+    /// Only search for private key patterns (EVM, hex, PEM).
+    /// Skips generic secrets, API keys, and AWS credentials.
+    #[arg(long)]
+    pub private_keys_only: bool,
+
+    /// Show partial secret in output (first 5 + last 5 chars).
+    /// Without this flag, secrets are fully redacted in human output.
+    #[arg(long)]
+    pub reveal: bool,
 }
 
 #[derive(ValueEnum, Clone, Debug)]
