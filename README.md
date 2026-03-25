@@ -29,17 +29,23 @@ cargo build --release
 ## Usage
 
 ```bash
-# Scan current repo (all history, HEAD branch)
+# Scan current repo (all history, all branches by default)
 git-leaks
 
-# Scan a specific repo, all branches
-git-leaks --repo /path/to/repo --all-branches
+# Scan a specific repo
+git-leaks --repo /path/to/repo
 
 # Limit to recent history
 git-leaks --since "4 months ago"
 
 # Full paranoid scan — reachable + dangling + auto-discovered orphans
-git-leaks --all-branches --dangling --discover-orphans --max-file-size 5242880
+git-leaks --dangling --discover-orphans
+
+# Only list the secret values (one per line)
+git-leaks --private-keys-only -l
+
+# List secrets from encrypted file
+git-leaks --decrypt findings.enc -l
 
 # Fetch and scan specific orphan commits by SHA
 git-leaks --fetch-orphans "d8764a93,abc12345"
@@ -74,7 +80,8 @@ git-leaks --discover-orphans
 | `--format <human\|json>` | Output format | `human` |
 | `--extensions <ext,ext>` | Only scan files with these extensions | all files |
 | `--max-file-size <BYTES>` | Skip blobs larger than this | `10485760` (10MB) |
-| `--all-branches` | Scan all branches, not just HEAD | off |
+| `--all-branches` | Scan all branches | `true` |
+| `-l, --list` | Only list secret values, one per line (works with scan and --decrypt) | off |
 | `--dangling` | Scan unreachable commits (via `git fsck`) | off |
 | `--fetch-orphans <SHAs>` | Fetch and scan specific orphan commit SHAs from remote | - |
 | `--discover-orphans` | Auto-discover orphans from API + reflog | off |

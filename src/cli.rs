@@ -29,8 +29,8 @@ pub struct Args {
     #[arg(long, default_value = "10485760")]
     pub max_file_size: u64,
 
-    /// Scan all branches, not just HEAD.
-    #[arg(long)]
+    /// Scan all branches (default). Use --no-all-branches to scan only HEAD.
+    #[arg(long, default_value = "true", action = clap::ArgAction::Set)]
     pub all_branches: bool,
 
     /// Also scan dangling/unreachable commits (found via git fsck).

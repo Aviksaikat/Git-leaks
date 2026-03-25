@@ -15,13 +15,13 @@ pub struct Finding {
     pub validated_evm_key: bool,
 }
 
-/// Deduplicate findings: keep the earliest commit for each (matched_text, file_path) pair.
+/// Deduplicate findings: keep the earliest commit for each unique secret value.
 /// Old entries are zeroized on drop to clear secrets from memory.
 pub fn deduplicate(findings: Vec<Finding>) -> Vec<Finding> {
-    let mut seen: HashMap<(String, String), Finding> = HashMap::new();
+    let mut seen: HashMap<String, Finding> = HashMap::new();
 
     for finding in findings {
-        let key = (finding.matched_text.clone(), finding.file_path.clone());
+        let key = finding.matched_text.clone();
         seen.entry(key)
             .and_modify(|existing| {
                 // Keep the one with the earlier date
