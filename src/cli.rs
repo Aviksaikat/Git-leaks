@@ -26,7 +26,7 @@ pub struct Args {
     pub extensions: Option<String>,
 
     /// Maximum blob size in bytes to scan (skip larger files).
-    #[arg(long, default_value = "1048576")]
+    #[arg(long, default_value = "10485760")]
     pub max_file_size: u64,
 
     /// Scan all branches, not just HEAD.

@@ -73,7 +73,7 @@ git-leaks --discover-orphans
 | `--since <DATE>` | Only scan commits after date (e.g. `"4 months ago"`, `"2024-01-01"`) | all history |
 | `--format <human\|json>` | Output format | `human` |
 | `--extensions <ext,ext>` | Only scan files with these extensions | all files |
-| `--max-file-size <BYTES>` | Skip blobs larger than this | `1048576` (1MB) |
+| `--max-file-size <BYTES>` | Skip blobs larger than this | `10485760` (10MB) |
 | `--all-branches` | Scan all branches, not just HEAD | off |
 | `--dangling` | Scan unreachable commits (via `git fsck`) | off |
 | `--fetch-orphans <SHAs>` | Fetch and scan specific orphan commit SHAs from remote | - |
