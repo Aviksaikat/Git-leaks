@@ -1,26 +1,42 @@
 use crate::cli::OutputFormat;
 use crate::finding::Finding;
 
+/// Controls how secrets are displayed in output.
+#[derive(Clone, Copy)]
+pub enum RevealLevel {
+    /// Fully redacted: "****"
+    Redacted,
+    /// Partial: first 5 + last 5 chars (e.g. "0x3b0...1d76")
+    Partial,
+    /// Full secret shown (used for encrypted output files)
+    Full,
+}
+
 pub fn print_findings(findings: &[Finding], format: &OutputFormat, reveal: bool) {
+    let level = if reveal {
+        RevealLevel::Partial
+    } else {
+        RevealLevel::Redacted
+    };
     match format {
-        OutputFormat::Human => print_human(findings, reveal),
+        OutputFormat::Human => print_human(findings, level),
         OutputFormat::Json => print_json(findings),
     }
 }
 
-/// Format findings as a string (used for encrypted file output).
-pub fn format_findings(findings: &[Finding], format: &OutputFormat, reveal: bool) -> String {
+/// Format findings as a string with full secret reveal (used for encrypted file output).
+pub fn format_findings_full(findings: &[Finding], format: &OutputFormat) -> String {
     match format {
-        OutputFormat::Human => format_human(findings, reveal),
+        OutputFormat::Human => format_human(findings, RevealLevel::Full),
         OutputFormat::Json => format_json(findings),
     }
 }
 
-fn print_human(findings: &[Finding], reveal: bool) {
-    print!("{}", format_human(findings, reveal));
+fn print_human(findings: &[Finding], level: RevealLevel) {
+    print!("{}", format_human(findings, level));
 }
 
-fn format_human(findings: &[Finding], reveal: bool) -> String {
+fn format_human(findings: &[Finding], level: RevealLevel) -> String {
     if findings.is_empty() {
         return "No leaked secrets found.\n".to_string();
     }
@@ -37,7 +53,7 @@ fn format_human(findings: &[Finding], reveal: bool) -> String {
         out.push_str(&format!("  Commit:  {} ({})\n", &finding.commit_hash[..8.min(finding.commit_hash.len())], finding.commit_date));
         out.push_str(&format!("  Message: {}\n", finding.commit_message));
         out.push_str(&format!("  File:    {}\n", finding.file_path));
-        out.push_str(&format!("  Match:   {}\n", format_secret(&finding.matched_text, reveal)));
+        out.push_str(&format!("  Match:   {}\n", format_secret(&finding.matched_text, level)));
         out.push_str("---\n");
     }
 
@@ -63,18 +79,18 @@ fn format_json(findings: &[Finding]) -> String {
     }
 }
 
-/// Format a secret for human-readable output.
-/// --reveal: show first 5 + last 5 chars (e.g. "0x3b0...1d76")
-/// default: fully redacted as "****"
-fn format_secret(secret: &str, reveal: bool) -> String {
-    if reveal {
-        if secret.len() <= 12 {
-            return secret.to_string();
+/// Format a secret based on reveal level.
+fn format_secret(secret: &str, level: RevealLevel) -> String {
+    match level {
+        RevealLevel::Full => secret.to_string(),
+        RevealLevel::Partial => {
+            if secret.len() <= 12 {
+                return secret.to_string();
+            }
+            let prefix = &secret[..5];
+            let suffix = &secret[secret.len() - 5..];
+            format!("{}...{}", prefix, suffix)
         }
-        let prefix = &secret[..5];
-        let suffix = &secret[secret.len() - 5..];
-        format!("{}...{}", prefix, suffix)
-    } else {
-        "****".to_string()
+        RevealLevel::Redacted => "****".to_string(),
     }
 }

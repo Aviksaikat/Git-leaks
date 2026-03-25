@@ -11,7 +11,7 @@ use clap::Parser;
 
 use cli::Args;
 use finding::deduplicate;
-use output::{format_findings, print_findings};
+use output::{format_findings_full, print_findings};
 
 fn main() -> anyhow::Result<()> {
     let args = Args::parse();
@@ -40,8 +40,8 @@ fn main() -> anyhow::Result<()> {
 
     // Write encrypted output file if requested
     if let (Some(ref path), Some(ref pw)) = (&args.output, &password) {
-        // Encrypted file always uses full reveal + JSON for complete data
-        let content = format_findings(&findings, &args.format, args.reveal);
+        // Encrypted file always shows full secrets — it's password-protected
+        let content = format_findings_full(&findings, &args.format);
         crypto::encrypt_and_write(&content, pw, path)?;
         eprintln!("\nEncrypted output written to: {:?}", path);
         eprintln!("Decrypt with: git-leaks --decrypt {:?}", path);

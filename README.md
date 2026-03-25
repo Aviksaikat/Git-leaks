@@ -10,6 +10,11 @@ A fast Rust CLI tool that scans git commit history for leaked secrets in file co
 - Scans **dangling commits** (post-rebase/amend, pre-GC) with `--dangling`
 - **Auto-discovers orphan commits** from GitHub/GitLab API + local reflog with `--discover-orphans`
 - Fetches **specific orphan commits** by SHA from remote with `--fetch-orphans`
+- **Cryptographic validation** of EVM private keys via secp256k1 curve (k256)
+- `--private-keys-only` to filter to just private key patterns
+- `--reveal` for partial secret display (first 5 + last 5 chars)
+- **AES-256-GCM encrypted output** with `--output` (password-protected, full secrets inside)
+- Uses `gh` CLI for GitHub API auth (SSH keys / OAuth) — no token env vars needed
 - Parallel commit processing across CPU cores
 - Human-readable and JSON output formats
 - Exit code 1 when secrets found (CI-friendly)
@@ -39,13 +44,23 @@ git-leaks --all-branches --dangling --discover-orphans --max-file-size 5242880
 # Fetch and scan specific orphan commits by SHA
 git-leaks --fetch-orphans "d8764a93,abc12345"
 
+# Only scan for private keys (EVM, hex, PEM)
+git-leaks --private-keys-only --reveal
+
+# Write findings to AES-encrypted file (prompts for password)
+git-leaks --output findings.enc --reveal
+
+# Decrypt and read the findings later
+git-leaks --decrypt findings.enc
+
 # JSON output for piping
 git-leaks --format json
 
 # Only scan specific file types
 git-leaks --extensions "js,ts,py,env,json"
 
-# For private repos, set token before discovery
+# GitHub auth via gh CLI (uses SSH keys automatically)
+# Or set token manually for private repos:
 export GITHUB_TOKEN=ghp_xxxxx
 git-leaks --discover-orphans
 ```
@@ -63,6 +78,10 @@ git-leaks --discover-orphans
 | `--dangling` | Scan unreachable commits (via `git fsck`) | off |
 | `--fetch-orphans <SHAs>` | Fetch and scan specific orphan commit SHAs from remote | - |
 | `--discover-orphans` | Auto-discover orphans from API + reflog | off |
+| `--private-keys-only` | Only scan for private key patterns (EVM, hex, PEM) | off |
+| `--reveal` | Show partial secret (first 5 + last 5 chars) | off (fully redacted) |
+| `-o, --output <FILE>` | Write findings to AES-256-GCM encrypted file | - |
+| `--decrypt <FILE>` | Decrypt and print a previously encrypted output file | - |
 
 ## How Orphan Discovery Works
 
@@ -94,11 +113,11 @@ flowchart TD
 
     H --> I["Findings tagged<br/>[DISCOVERED]"]
 
-    style A1 fill:#f9f,stroke:#333
-    style B1 fill:#bbf,stroke:#333
-    style C1 fill:#bbf,stroke:#333
-    style F fill:#fbb,stroke:#333
-    style I fill:#bfb,stroke:#333
+    style A1 fill:#f9f,stroke:#333,color:#000
+    style B1 fill:#bbf,stroke:#333,color:#000
+    style C1 fill:#bbf,stroke:#333,color:#000
+    style F fill:#fbb,stroke:#333,color:#000
+    style I fill:#bfb,stroke:#333,color:#000
 ```
 
 ## Default Secret Patterns
@@ -125,7 +144,9 @@ src/
 ├── patterns.rs    # Secret detection regex patterns
 ├── finding.rs     # Finding struct + deduplication
 ├── output.rs      # Human-readable + JSON formatters
-└── orphans.rs     # Orphan commit auto-discovery (API + reflog)
+├── orphans.rs     # Orphan commit auto-discovery (API + reflog)
+├── validate.rs    # secp256k1 private key cryptographic validation
+└── crypto.rs      # AES-256-GCM encrypted output (PBKDF2 key derivation)
 ```
 
 **Key dependencies:**
@@ -134,6 +155,9 @@ src/
 - `rayon` — data-parallel commit processing across CPU cores
 - `clap` — CLI argument parsing
 - `serde_json` — JSON output
+- `k256` — secp256k1 cryptographic key validation
+- `aes-gcm` — AES-256-GCM encryption for output files
+- `pbkdf2` + `sha2` — password-based key derivation
 
 ## License
 
