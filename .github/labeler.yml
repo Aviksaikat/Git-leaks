@@ -1,0 +1,47 @@
+feature:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/**"
+          - "Cargo.toml"
+
+bug:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/**"
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "README.md"
+          - "docs/**"
+          - "*.md"
+
+security:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/crypto.rs"
+          - "src/validate.rs"
+          - "src/patterns.rs"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "Cargo.toml"
+          - "Cargo.lock"
+
+scanner:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/scanner.rs"
+          - "src/orphans.rs"
+
+output:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/output.rs"
+          - "src/crypto.rs"
