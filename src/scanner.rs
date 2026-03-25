@@ -102,8 +102,8 @@ pub fn scan(args: &Args) -> Result<Vec<Finding>> {
                 "Found {} dangling/unreachable commits to scan...",
                 new_dangling.len()
             );
-            let dangling_repo = gix::open(&git_dir)
-                .context("Failed to open repo for dangling commit scan")?;
+            let dangling_repo =
+                gix::open(&git_dir).context("Failed to open repo for dangling commit scan")?;
             for oid in &new_dangling {
                 if let Ok(commit) = dangling_repo.find_commit(*oid) {
                     let message = commit
@@ -147,8 +147,8 @@ pub fn scan(args: &Args) -> Result<Vec<Finding>> {
             let fetched = fetch_orphan_commits(&work_dir, &orphan_shas)?;
 
             // Reopen repo AFTER fetch so gix sees the newly-fetched objects
-            let orphan_repo = gix::open(&git_dir)
-                .context("Failed to reopen repo after fetching orphans")?;
+            let orphan_repo =
+                gix::open(&git_dir).context("Failed to reopen repo after fetching orphans")?;
 
             for sha in &fetched {
                 let oid = gix::ObjectId::from_hex(sha.as_bytes())
@@ -164,8 +164,7 @@ pub fn scan(args: &Args) -> Result<Vec<Finding>> {
                             .message_raw()
                             .map(|m| m.to_string())
                             .unwrap_or_default();
-                        let message_first_line =
-                            message.lines().next().unwrap_or("").to_string();
+                        let message_first_line = message.lines().next().unwrap_or("").to_string();
 
                         let time = commit.time().map(|t| t.seconds).unwrap_or(0);
                         let date = format_timestamp(time);
@@ -225,8 +224,7 @@ pub fn scan(args: &Args) -> Result<Vec<Finding>> {
                             .message_raw()
                             .map(|m| m.to_string())
                             .unwrap_or_default();
-                        let message_first_line =
-                            message.lines().next().unwrap_or("").to_string();
+                        let message_first_line = message.lines().next().unwrap_or("").to_string();
 
                         let time = commit.time().map(|t| t.seconds).unwrap_or(0);
 
@@ -283,7 +281,14 @@ pub fn scan(args: &Args) -> Result<Vec<Finding>> {
             }
         };
 
-        match scan_commit_tree(&thread_repo, oid, commit_info, &ext_filter, max_size, pk_only) {
+        match scan_commit_tree(
+            &thread_repo,
+            oid,
+            commit_info,
+            &ext_filter,
+            max_size,
+            pk_only,
+        ) {
             Ok(commit_findings) => {
                 if !commit_findings.is_empty() {
                     findings.lock().unwrap().extend(commit_findings);
@@ -365,10 +370,9 @@ fn scan_commit_tree(
         let matches = patterns.scan_text(&text);
         for (pattern_name, matched_text) in matches {
             // Validate EVM/hex private key patterns cryptographically
-            let validated_evm_key = matches!(
-                pattern_name,
-                "evm_private_key" | "hex_private_key_raw"
-            ) && is_valid_secp256k1_key(&matched_text);
+            let validated_evm_key =
+                matches!(pattern_name, "evm_private_key" | "hex_private_key_raw")
+                    && is_valid_secp256k1_key(&matched_text);
 
             findings.push(Finding {
                 commit_hash: commit_info.hash.clone(),
@@ -435,21 +439,21 @@ fn fetch_orphan_commits(work_dir: &PathBuf, shas: &[String]) -> Result<Vec<Strin
             Ok(output) => {
                 let stderr = String::from_utf8_lossy(&output.stderr);
                 // Some servers don't allow fetching by SHA — try uploadpack.allowReachableSHA1InWant
-                if stderr.contains("no such remote ref") || stderr.contains("couldn't find remote ref") {
+                if stderr.contains("no such remote ref")
+                    || stderr.contains("couldn't find remote ref")
+                {
                     // Try the protocol-level fetch as a fallback
                     let result2 = Command::new("git")
-                        .args([
-                            "fetch",
-                            "--no-tags",
-                            "origin",
-                            &format!("{}:{}", sha, sha),
-                        ])
+                        .args(["fetch", "--no-tags", "origin", &format!("{}:{}", sha, sha)])
                         .current_dir(work_dir)
                         .output();
 
                     match result2 {
                         Ok(out2) if out2.status.success() => {
-                            eprintln!("  Fetched orphan commit (direct): {}", &sha[..8.min(sha.len())]);
+                            eprintln!(
+                                "  Fetched orphan commit (direct): {}",
+                                &sha[..8.min(sha.len())]
+                            );
                             fetched.push(sha.clone());
                         }
                         _ => {
@@ -468,7 +472,11 @@ fn fetch_orphan_commits(work_dir: &PathBuf, shas: &[String]) -> Result<Vec<Strin
                 }
             }
             Err(e) => {
-                eprintln!("  Warning: git fetch failed for {}: {}", &sha[..8.min(sha.len())], e);
+                eprintln!(
+                    "  Warning: git fetch failed for {}: {}",
+                    &sha[..8.min(sha.len())],
+                    e
+                );
             }
         }
     }
@@ -503,12 +511,10 @@ fn collect_tips(repo: &gix::Repository, all_branches: bool) -> Result<Vec<gix::O
         let refs = repo.references()?;
         for reference in refs.all()? {
             match reference {
-                Ok(mut r) => {
-                    match r.peel_to_id_in_place() {
-                        Ok(id) => tips.push(id.detach()),
-                        Err(_) => continue,
-                    }
-                }
+                Ok(mut r) => match r.peel_to_id_in_place() {
+                    Ok(id) => tips.push(id.detach()),
+                    Err(_) => continue,
+                },
                 Err(_) => continue,
             }
         }

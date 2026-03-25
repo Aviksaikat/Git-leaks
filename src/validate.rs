@@ -7,7 +7,10 @@ use k256::SecretKey;
 /// - Non-zero
 /// - Less than the secp256k1 curve order n
 pub fn is_valid_secp256k1_key(hex_str: &str) -> bool {
-    let hex = hex_str.strip_prefix("0x").or_else(|| hex_str.strip_prefix("0X")).unwrap_or(hex_str);
+    let hex = hex_str
+        .strip_prefix("0x")
+        .or_else(|| hex_str.strip_prefix("0X"))
+        .unwrap_or(hex_str);
 
     if hex.len() != 64 {
         return false;

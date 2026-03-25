@@ -179,13 +179,8 @@ fn discover_from_github_gh(owner: &str, repo: &str) -> Result<Vec<String>> {
 
     // 1. Push events — extract 'before' SHAs
     for page in 1..=10 {
-        let endpoint = format!(
-            "repos/{}/{}/events?page={}&per_page=100",
-            owner, repo, page
-        );
-        let output = Command::new("gh")
-            .args(["api", &endpoint])
-            .output();
+        let endpoint = format!("repos/{}/{}/events?page={}&per_page=100", owner, repo, page);
+        let output = Command::new("gh").args(["api", &endpoint]).output();
 
         let output = match output {
             Ok(o) if o.status.success() => o,
@@ -215,13 +210,8 @@ fn discover_from_github_gh(owner: &str, repo: &str) -> Result<Vec<String>> {
     }
 
     // 2. PR commits from merged PRs
-    let pr_endpoint = format!(
-        "repos/{}/{}/pulls?state=closed&per_page=100",
-        owner, repo
-    );
-    let output = Command::new("gh")
-        .args(["api", &pr_endpoint])
-        .output();
+    let pr_endpoint = format!("repos/{}/{}/pulls?state=closed&per_page=100", owner, repo);
+    let output = Command::new("gh").args(["api", &pr_endpoint]).output();
 
     if let Ok(output) = output {
         if output.status.success() {
@@ -242,9 +232,7 @@ fn discover_from_github_gh(owner: &str, repo: &str) -> Result<Vec<String>> {
                     "repos/{}/{}/pulls/{}/commits?per_page=100",
                     owner, repo, pr_number
                 );
-                let commits_output = Command::new("gh")
-                    .args(["api", &commits_endpoint])
-                    .output();
+                let commits_output = Command::new("gh").args(["api", &commits_endpoint]).output();
 
                 if let Ok(co) = commits_output {
                     if co.status.success() {

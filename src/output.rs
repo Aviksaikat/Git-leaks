@@ -49,11 +49,21 @@ fn format_human(findings: &[Finding], level: RevealLevel) -> String {
         } else {
             ""
         };
-        out.push_str(&format!("[LEAK] {}{}\n", finding.pattern_name, validation_tag));
-        out.push_str(&format!("  Commit:  {} ({})\n", &finding.commit_hash[..8.min(finding.commit_hash.len())], finding.commit_date));
+        out.push_str(&format!(
+            "[LEAK] {}{}\n",
+            finding.pattern_name, validation_tag
+        ));
+        out.push_str(&format!(
+            "  Commit:  {} ({})\n",
+            &finding.commit_hash[..8.min(finding.commit_hash.len())],
+            finding.commit_date
+        ));
         out.push_str(&format!("  Message: {}\n", finding.commit_message));
         out.push_str(&format!("  File:    {}\n", finding.file_path));
-        out.push_str(&format!("  Match:   {}\n", format_secret(&finding.matched_text, level)));
+        out.push_str(&format!(
+            "  Match:   {}\n",
+            format_secret(&finding.matched_text, level)
+        ));
         out.push_str("---\n");
     }
 

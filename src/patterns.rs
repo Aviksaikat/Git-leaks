@@ -112,7 +112,8 @@ mod tests {
     #[test]
     fn test_evm_private_key() {
         let ps = PatternSet::default_patterns();
-        let text = r#"privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'"#;
+        let text =
+            r#"privateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80'"#;
         let results = ps.scan_text(text);
         assert!(!results.is_empty());
         assert_eq!(results[0].0, "evm_private_key");
@@ -138,7 +139,8 @@ mod tests {
     fn test_evm_private_key_camelcase_single_quotes() {
         let ps = PatternSet::default_patterns();
         // Exact format from Jupyter notebook cell output
-        let text = r#"'privateKey': '0x3b0640259cb0441f71acf8ca43593bb9cb2c979d07d0b0afb7421507caa81d76'"#;
+        let text =
+            r#"'privateKey': '0x3b0640259cb0441f71acf8ca43593bb9cb2c979d07d0b0afb7421507caa81d76'"#;
         let results = ps.scan_text(text);
         assert!(
             results.iter().any(|(name, _)| *name == "evm_private_key"),

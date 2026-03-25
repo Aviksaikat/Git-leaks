@@ -12,17 +12,15 @@ const NONCE_LEN: usize = 12;
 
 /// Prompt the user for a password (hidden input), confirm it, return the password.
 pub fn prompt_password() -> Result<String> {
-    let password =
-        rpassword::prompt_password("Enter password for encrypted output: ")
-            .context("Failed to read password")?;
+    let password = rpassword::prompt_password("Enter password for encrypted output: ")
+        .context("Failed to read password")?;
 
     if password.is_empty() {
         anyhow::bail!("Password cannot be empty");
     }
 
-    let confirm =
-        rpassword::prompt_password("Confirm password: ")
-            .context("Failed to read password confirmation")?;
+    let confirm = rpassword::prompt_password("Confirm password: ")
+        .context("Failed to read password confirmation")?;
 
     if password != confirm {
         anyhow::bail!("Passwords do not match");
