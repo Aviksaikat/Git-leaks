@@ -60,6 +60,16 @@ pub struct Args {
     /// Without this flag, secrets are fully redacted in human output.
     #[arg(long)]
     pub reveal: bool,
+
+    /// Write output to an AES-256-GCM encrypted file.
+    /// Prompts for a password at startup to encrypt the file.
+    #[arg(short, long)]
+    pub output: Option<PathBuf>,
+
+    /// Decrypt a previously encrypted output file and print its contents.
+    /// Usage: git-leaks --decrypt <file>
+    #[arg(long)]
+    pub decrypt: Option<PathBuf>,
 }
 
 #[derive(ValueEnum, Clone, Debug)]

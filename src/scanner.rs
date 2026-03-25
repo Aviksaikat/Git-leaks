@@ -9,6 +9,7 @@ use rayon::prelude::*;
 use crate::cli::Args;
 use crate::finding::Finding;
 use crate::patterns::PatternSet;
+use crate::validate::is_valid_secp256k1_key;
 
 struct CommitInfo {
     hash: String,
@@ -363,6 +364,12 @@ fn scan_commit_tree(
         // Pattern matching
         let matches = patterns.scan_text(&text);
         for (pattern_name, matched_text) in matches {
+            // Validate EVM/hex private key patterns cryptographically
+            let validated_evm_key = matches!(
+                pattern_name,
+                "evm_private_key" | "hex_private_key_raw"
+            ) && is_valid_secp256k1_key(&matched_text);
+
             findings.push(Finding {
                 commit_hash: commit_info.hash.clone(),
                 commit_message: commit_info.message.clone(),
@@ -370,6 +377,7 @@ fn scan_commit_tree(
                 file_path: path.clone(),
                 pattern_name: pattern_name.to_string(),
                 matched_text,
+                validated_evm_key,
             });
         }
     }

@@ -8,34 +8,58 @@ pub fn print_findings(findings: &[Finding], format: &OutputFormat, reveal: bool)
     }
 }
 
+/// Format findings as a string (used for encrypted file output).
+pub fn format_findings(findings: &[Finding], format: &OutputFormat, reveal: bool) -> String {
+    match format {
+        OutputFormat::Human => format_human(findings, reveal),
+        OutputFormat::Json => format_json(findings),
+    }
+}
+
 fn print_human(findings: &[Finding], reveal: bool) {
+    print!("{}", format_human(findings, reveal));
+}
+
+fn format_human(findings: &[Finding], reveal: bool) -> String {
     if findings.is_empty() {
-        println!("No leaked secrets found.");
-        return;
+        return "No leaked secrets found.\n".to_string();
     }
 
+    let mut out = String::new();
+
     for finding in findings {
-        println!("[LEAK] {}", finding.pattern_name);
-        println!("  Commit:  {} ({})", &finding.commit_hash[..8.min(finding.commit_hash.len())], finding.commit_date);
-        println!("  Message: {}", finding.commit_message);
-        println!("  File:    {}", finding.file_path);
-        println!("  Match:   {}", format_secret(&finding.matched_text, reveal));
-        println!("---");
+        let validation_tag = if finding.validated_evm_key {
+            " [VERIFIED secp256k1]"
+        } else {
+            ""
+        };
+        out.push_str(&format!("[LEAK] {}{}\n", finding.pattern_name, validation_tag));
+        out.push_str(&format!("  Commit:  {} ({})\n", &finding.commit_hash[..8.min(finding.commit_hash.len())], finding.commit_date));
+        out.push_str(&format!("  Message: {}\n", finding.commit_message));
+        out.push_str(&format!("  File:    {}\n", finding.file_path));
+        out.push_str(&format!("  Match:   {}\n", format_secret(&finding.matched_text, reveal)));
+        out.push_str("---\n");
     }
 
     let unique_commits: std::collections::HashSet<&str> =
         findings.iter().map(|f| f.commit_hash.as_str()).collect();
-    println!(
-        "\nFound {} leaked secret(s) across {} commit(s).",
+    out.push_str(&format!(
+        "\nFound {} leaked secret(s) across {} commit(s).\n",
         findings.len(),
         unique_commits.len()
-    );
+    ));
+
+    out
 }
 
 fn print_json(findings: &[Finding]) {
+    print!("{}", format_json(findings));
+}
+
+fn format_json(findings: &[Finding]) -> String {
     match serde_json::to_string_pretty(findings) {
-        Ok(json) => println!("{}", json),
-        Err(e) => eprintln!("Failed to serialize findings to JSON: {}", e),
+        Ok(json) => format!("{}\n", json),
+        Err(e) => format!("Failed to serialize findings to JSON: {}\n", e),
     }
 }
 

@@ -21,10 +21,17 @@ pub fn discover_orphan_shas(work_dir: &Path) -> Result<Vec<String>> {
     // Layer 2: GitHub/GitLab API — push events + PR commits
     if let Some(remote_url) = get_remote_url(work_dir) {
         if let Some((platform, owner, repo)) = parse_remote_url(&remote_url) {
-            let token = get_api_token(&platform);
             match platform.as_str() {
                 "github" => {
-                    let api_shas = discover_from_github(&owner, &repo, token.as_deref())?;
+                    // Try gh CLI first (uses existing SSH/OAuth auth), fall back to curl+token
+                    let api_shas = if has_gh_cli() {
+                        eprintln!("  Using gh CLI for GitHub API (SSH auth)...");
+                        discover_from_github_gh(&owner, &repo)?
+                    } else {
+                        let token = get_api_token(&platform);
+                        eprintln!("  Using curl for GitHub API (token auth)...");
+                        discover_from_github(&owner, &repo, token.as_deref())?
+                    };
                     eprintln!(
                         "  GitHub API: found {} candidate SHAs from events + PRs",
                         api_shas.len()
@@ -32,6 +39,7 @@ pub fn discover_orphan_shas(work_dir: &Path) -> Result<Vec<String>> {
                     candidates.extend(api_shas);
                 }
                 "gitlab" => {
+                    let token = get_api_token(&platform);
                     let api_shas = discover_from_gitlab(&owner, &repo, token.as_deref())?;
                     eprintln!(
                         "  GitLab API: found {} candidate SHAs from events",
@@ -154,7 +162,110 @@ fn get_api_token(platform: &str) -> Option<String> {
     }
 }
 
-/// Discover orphan SHAs from GitHub Events API + PR commits.
+/// Check if `gh` CLI is installed and authenticated.
+fn has_gh_cli() -> bool {
+    Command::new("gh")
+        .args(["auth", "status"])
+        .stdout(std::process::Stdio::null())
+        .stderr(std::process::Stdio::null())
+        .status()
+        .map(|s| s.success())
+        .unwrap_or(false)
+}
+
+/// Discover orphan SHAs from GitHub using `gh` CLI (uses existing SSH/OAuth auth).
+fn discover_from_github_gh(owner: &str, repo: &str) -> Result<Vec<String>> {
+    let mut shas = Vec::new();
+
+    // 1. Push events — extract 'before' SHAs
+    for page in 1..=10 {
+        let endpoint = format!(
+            "repos/{}/{}/events?page={}&per_page=100",
+            owner, repo, page
+        );
+        let output = Command::new("gh")
+            .args(["api", &endpoint])
+            .output();
+
+        let output = match output {
+            Ok(o) if o.status.success() => o,
+            _ => break,
+        };
+
+        let body = String::from_utf8_lossy(&output.stdout);
+        let events: Vec<serde_json::Value> = match serde_json::from_str(&body) {
+            Ok(v) => v,
+            Err(_) => break,
+        };
+
+        if events.is_empty() {
+            break;
+        }
+
+        for event in &events {
+            if event["type"].as_str() != Some("PushEvent") {
+                continue;
+            }
+            if let Some(before) = event["payload"]["before"].as_str() {
+                if before.len() >= 40 && before != "0000000000000000000000000000000000000000" {
+                    shas.push(before.to_string());
+                }
+            }
+        }
+    }
+
+    // 2. PR commits from merged PRs
+    let pr_endpoint = format!(
+        "repos/{}/{}/pulls?state=closed&per_page=100",
+        owner, repo
+    );
+    let output = Command::new("gh")
+        .args(["api", &pr_endpoint])
+        .output();
+
+    if let Ok(output) = output {
+        if output.status.success() {
+            let body = String::from_utf8_lossy(&output.stdout);
+            let prs: Vec<serde_json::Value> = serde_json::from_str(&body).unwrap_or_default();
+
+            for pr in &prs {
+                if pr["merged_at"].as_str().is_none() {
+                    continue;
+                }
+
+                let pr_number = match pr["number"].as_u64() {
+                    Some(n) => n,
+                    None => continue,
+                };
+
+                let commits_endpoint = format!(
+                    "repos/{}/{}/pulls/{}/commits?per_page=100",
+                    owner, repo, pr_number
+                );
+                let commits_output = Command::new("gh")
+                    .args(["api", &commits_endpoint])
+                    .output();
+
+                if let Ok(co) = commits_output {
+                    if co.status.success() {
+                        let commits_body = String::from_utf8_lossy(&co.stdout);
+                        let commits: Vec<serde_json::Value> =
+                            serde_json::from_str(&commits_body).unwrap_or_default();
+                        for commit in &commits {
+                            if let Some(sha) = commit["sha"].as_str() {
+                                shas.push(sha.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(shas)
+}
+
+/// Discover orphan SHAs from GitHub Events API + PR commits (curl fallback).
 fn discover_from_github(owner: &str, repo: &str, token: Option<&str>) -> Result<Vec<String>> {
     let mut shas = Vec::new();
 

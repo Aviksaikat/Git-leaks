@@ -10,6 +10,8 @@ pub struct Finding {
     pub file_path: String,
     pub pattern_name: String,
     pub matched_text: String,
+    /// Whether the matched text was cryptographically verified as a valid secp256k1 private key.
+    pub validated_evm_key: bool,
 }
 
 /// Deduplicate findings: keep the earliest commit for each (matched_text, file_path) pair.
